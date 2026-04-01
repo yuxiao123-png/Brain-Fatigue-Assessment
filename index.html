@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>专业脑疲劳综合评估系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Segoe UI,Microsoft YaHei,sans-serif}
+body{background:#eaf5ff;min-height:100vh;padding:20px 10px}
+.container{max-width:960px;margin:0 auto;background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,80,150,0.12);overflow:hidden;position:relative}
+
+.header{background:linear-gradient(135deg,#005bb6,#004488);color:#fff;padding:30px 24px;text-align:center;position:relative;z-index:2}
+.header h1{font-size:26px;margin-bottom:8px}
+.header p{font-size:14px;opacity:.9}
+.main{padding:30px 24px;position:relative;z-index:2}
+
+.info-card{background:#f7fbff;border:1px solid #d6e9ff;border-radius:14px;padding:20px;margin-bottom:28px}
+.info-title{color:#004488;font-size:17px;margin-bottom:16px;font-weight:600}
+.info-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.form-item{display:flex;flex-direction:column;gap:6px}
+.form-item label{font-size:14px;color:#224a6f}
+.form-item input{padding:12px;border:1px solid #c8e0ff;border-radius:8px;font-size:15px}
+
+.question{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #eef}
+.question h3{font-size:16px;color:#113a5f;margin-bottom:12px;line-height:1.6}
+.options{display:grid;gap:8px}
+.option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#f7fbff;border:1px solid #d6e9ff;cursor:pointer}
+.option:hover{background:#e6f4ff}
+.option input{width:18px;height:18px}
+
+.btn-group{display:flex;gap:12px;margin-top:20px}
+.btn-submit{flex:1;padding:18px;background:#005bb6;color:#fff;border:none;border-radius:12px;font-size:18px;font-weight:600;cursor:pointer}
+.btn-submit:hover{background:#004a99}
+
+.report{display:none;padding:20px 0;position:relative;z-index:2}
+.report-title{text-align:center;color:#004a8f;margin-bottom:24px;font-size:22px}
+.info-show{background:#fff;border:1px solid #d6e9ff;border-radius:12px;padding:16px;margin-bottom:20px;line-height:1.8;font-size:15px}
+
+.doc-block{
+  background:#f8fcff;
+  border:1px solid #d6e9ff;
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:24px;
+  line-height:1.8;
+  font-size:15px;
+}
+.doc-block h4{
+  color:#004a8f;
+  margin-bottom:10px;
+  font-size:16px;
+}
+.table-box{
+  width:100%;
+  border-collapse:collapse;
+  margin:20px 0;
+  background:#fff;
+}
+.table-box th,.table-box td{
+  border:1px solid #cce0ff;
+  padding:12px;
+  text-align:center;
+}
+.table-box th{
+  background:#ebf5ff;
+  color:#004a8f;
+  font-weight:600;
+}
+
+.score-card{background:#f4fbff;border-left:6px solid #005bb6;padding:24px;border-radius:12px;margin-bottom:24px}
+.score-card h3{color:#003355;margin-bottom:12px}
+.score-row{display:flex;justify-content:space-between;margin:8px 0;font-size:15px}
+.disclaimer{margin-top:12px;font-size:14px;color:#d32f2f;text-align:center;font-weight:500}
+
+.level-normal{color:#1e88e5;font-weight:600}
+.level-mild{color:#0288d1;font-weight:600}
+.level-moderate{color:#f57c00;font-weight:600}
+.level-severe{color:#d32f2f;font-weight:600}
+.chart-box{margin:30px 0;height:320px}
+.btn-pdf,.btn-reset{background:#005bb6;color:#fff;border:none;padding:12px 28px;border-radius:10px;cursor:pointer;margin:0 6px}
+.btn-center{text-align:center;margin-top:20px}
+
+@media print{.btn-pdf,.btn-reset,.header p{display:none}}
+</style>
+</head>
+
+<body>
+<div class="container">
+<div class="header">
+<h1>🧠 专业脑疲劳综合评估系统</h1>
+<p>基于神经行为学与职业健康评估标准</p>
+</div>
+
+<div class="main">
+<form id="testForm">
+  <div class="info-card">
+    <div class="info-title">📋 受测者信息</div>
+    <div class="info-form">
+      <div class="form-item">
+        <label>姓名</label>
+        <input type="text" id="name" required placeholder="请输入姓名">
+      </div>
+      <div class="form-item">
+        <label>年龄</label>
+        <input type="number" id="age" required min="1" max="120" placeholder="请输入年龄">
+      </div>
+      <div class="form-item">
+        <label>测试日期</label>
+        <input type="date" id="testDate" required>
+      </div>
+    </div>
+  </div>
+
+  <div class="question">
+    <h3>1. 近两周是否难以长时间集中注意力，容易分心、走神？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q1" value="0" required> 无此情况</label>
+      <label class="option"><input type="radio" name="q1" value="1"> 偶尔出现</label>
+      <label class="option"><input type="radio" name="q1" value="2"> 经常出现</label>
+      <label class="option"><input type="radio" name="q1" value="3"> 持续存在</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>2. 处理复杂任务时是否思维迟缓、逻辑梳理困难？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q2" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q2" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q2" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q2" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>3. 是否近期记忆力下降，如忘记安排、遗漏细节、回忆困难？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q3" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q3" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q3" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q3" value="3"> 频繁</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>4. 是否出现瞬时记忆减退，刚接收的信息快速遗忘？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q4" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q4" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q4" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q4" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>5. 对外界刺激反应变慢，判断与决策效率下降？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q5" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q5" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q5" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q5" value="3"> 持续</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>6. 视觉疲劳明显，眼干、视物模糊、阅读吃力？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q6" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q6" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q6" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q6" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>7. 入睡困难、多梦易醒、睡眠浅、醒后疲惫？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q7" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q7" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q7" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q7" value="3"> 持续</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>8. 日间嗜睡、困倦、精神不振、难以保持清醒？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q8" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q8" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q8" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q8" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>9. 情绪易烦躁、焦虑、易怒、耐心显著下降？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q9" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q9" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q9" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q9" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>10. 兴趣减退、动力不足、愉悦感下降、精神萎靡？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q10" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q10" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q10" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q10" value="3"> 持续</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>11. 频繁头晕、头部沉重、脑部昏胀、压迫感？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q11" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q11" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q11" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q11" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>12. 出现颈肩紧张、头痛、脑供血不足样短暂恍惚？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q12" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q12" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q12" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q12" value="3"> 频繁</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>13. 高强度用脑耐受下降，稍用脑即疲惫不堪？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q13" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q13" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q13" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q13" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>14. 工作学习效率明显下降，拖延、难以启动任务？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q14" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q14" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q14" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q14" value="3"> 持续</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>15. 语言表达不流畅、思路卡顿、交流吃力？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q15" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q15" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q15" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q15" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>16. 压力感知增强，放松困难、难以从疲劳中恢复？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q16" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q16" value="1"> 偶尔</label>
+      <label class="option"><input type="radio" name="q16" value="2"> 经常</label>
+      <label class="option"><input type="radio" name="q16" value="3"> 持续</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>17. 休息后仍无法缓解疲劳，呈持续性脑耗竭状态？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q17" value="0"> 无</label>
+      <label class="option"><input type="radio" name="q17" value="1"> 轻微</label>
+      <label class="option"><input type="radio" name="q17" value="2"> 明显</label>
+      <label class="option"><input type="radio" name="q17" value="3"> 严重</label>
+    </div>
+  </div>
+  <div class="question">
+    <h3>18. 综合自评：你认为当前大脑疲劳对生活影响程度？</h3>
+    <div class="options">
+      <label class="option"><input type="radio" name="q18" value="0"> 无影响</label>
+      <label class="option"><input type="radio" name="q18" value="1"> 轻微影响</label>
+      <label class="option"><input type="radio" name="q18" value="2"> 明显影响</label>
+      <label class="option"><input type="radio" name="q18" value="3"> 严重影响</label>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-submit">生成专业评估报告</button>
+</form>
+
+<!-- 报告区域 -->
+<div class="report" id="report">
+  <h2 class="report-title">脑疲劳综合评估报告</h2>
+  <div class="info-show" id="userInfo"></div>
+
+  <!-- 文档说明部分 -->
+  <div class="doc-block">
+    <h4>一、评估说明与分数意义</h4>
+    <p>本评估量表总分范围 0～54 分，分值越低代表大脑功能状态越好，分值越高代表脑疲劳程度越严重。</p>
+    <p>• 0～12 分：无明显脑疲劳，认知功能正常</p>
+    <p>• 13～24 分：轻度脑疲劳，注意力与效率略有下降</p>
+    <p>• 25～38 分：中度脑疲劳，已明显影响情绪与工作学习</p>
+    <p>• 39～54 分：重度脑疲劳，大脑处于耗竭状态，需及时干预</p>
+  </div>
+
+  <div class="doc-block">
+    <h4>二、专业术语解释</h4>
+    <p><strong>注意力维度：</strong>反映集中注意力、抗干扰、持续专注的能力。</p>
+    <p><strong>记忆维度：</strong>反映瞬时记忆、近期记忆、信息存储与提取能力。</p>
+    <p><strong>睡眠觉醒：</strong>反映睡眠质量、日间清醒度与大脑节律状态。</p>
+    <p><strong>情绪心理：</strong>反映压力耐受、情绪稳定性与心理能量水平。</p>
+    <p><strong>躯体不适：</strong>反映由脑疲劳引发的头晕、头痛、颈肩紧张等躯体症状。</p>
+  </div>
+
+  <!-- 表格评分 -->
+  <table class="table-box">
+    <tr>
+      <th>评估维度</th>
+      <th>得分</th>
+      <th>满分</th>
+      <th>状态说明</th>
+    </tr>
+    <tr>
+      <td>注意力维度</td>
+      <td id="t1">-</td>
+      <td>6</td>
+      <td id="tt1">-</td>
+    </tr>
+    <tr>
+      <td>记忆维度</td>
+      <td id="t2">-</td>
+      <td>6</td>
+      <td id="tt2">-</td>
+    </tr>
+    <tr>
+      <td>睡眠觉醒</td>
+      <td id="t3">-</td>
+      <td>6</td>
+      <td id="tt3">-</td>
+    </tr>
+    <tr>
+      <td>情绪心理</td>
+      <td id="t4">-</td>
+      <td>6</td>
+      <td id="tt4">-</td>
+    </tr>
+    <tr>
+      <td>躯体不适</td>
+      <td id="t5">-</td>
+      <td>6</td>
+      <td id="tt5">-</td>
+    </tr>
+    <tr>
+      <td><strong>综合总分</strong></td>
+      <td id="tTotal">-</td>
+      <td><strong>54</strong></td>
+      <td id="tLevel">-</td>
+    </tr>
+  </table>
+
+  <div class="score-card">
+    <h3>📋 综合评估与建议</h3>
+    <p style="margin-top:10px;line-height:1.8" id="suggest"></p>
+    <div class="disclaimer">温馨提示：本结果仅供健康参考，不构成医疗诊断意见</div>
+  </div>
+
+  <div class="chart-box"><canvas id="radarChart"></canvas></div>
+  <div class="btn-center">
+    <button class="btn-pdf" id="exportPdf">导出PDF报告</button>
+    <button class="btn-reset" onclick="resetTest()">重新测试</button>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+const form = document.getElementById('testForm');
+const report = document.getElementById('report');
+let chart = null;
+
+window.onload = function(){
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('testDate').value = today;
+}
+
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  const name = document.getElementById('name').value;
+  const age = document.getElementById('age').value;
+  const date = document.getElementById('testDate').value;
+  let total = 0;
+  for(let i=1;i<=18;i++){
+    const v = document.querySelector(`input[name="q${i}"]:checked`);
+    if(v) total += parseInt(v.value);
+  }
+  const s1 = score('q1','q2');
+  const s2 = score('q3','q4');
+  const s3 = score('q7','q8');
+  const s4 = score('q9','q10');
+  const s5 = score('q11','q12');
+  showReport(name,age,date,total,s1,s2,s3,s4,s5);
+  form.style.display = 'none';
+  report.style.display = 'block';
+});
+
+function score(...names){
+  let s=0;
+  names.forEach(n=>{
+    const v=document.querySelector(`input[name="${n}"]:checked`);
+    if(v)s+=parseInt(v.value)
+  });
+  return s;
+}
+
+function textLevel(s){
+  if(s<=1) return "状态良好";
+  if(s<=3) return "基本正常";
+  if(s<=5) return "轻度异常";
+  return "明显异常";
+}
+
+function showReport(name,age,date,total,s1,s2,s3,s4,s5){
+  document.getElementById('userInfo').innerHTML = `
+    姓名：${name} 　年龄：${age}岁 　测试日期：${date}
+  `;
+
+  document.getElementById('t1').textContent = s1;
+  document.getElementById('t2').textContent = s2;
+  document.getElementById('t3').textContent = s3;
+  document.getElementById('t4').textContent = s4;
+  document.getElementById('t5').textContent = s5;
+  document.getElementById('tTotal').textContent = total;
+
+  document.getElementById('tt1').textContent = textLevel(s1);
+  document.getElementById('tt2').textContent = textLevel(s2);
+  document.getElementById('tt3').textContent = textLevel(s3);
+  document.getElementById('tt4').textContent = textLevel(s4);
+  document.getElementById('tt5').textContent = textLevel(s5);
+
+  let level,cls,sug;
+  if(total <= 12){
+    level = "无疲劳 / 状态良好";
+    cls = "level-normal";
+    sug = "大脑功能状态良好，认知效率正常。建议保持规律作息、适度运动，继续维持健康用脑习惯。"
+  } else if(total <= 24){
+    level = "轻度脑疲劳";
+    cls = "level-mild";
+    sug = "大脑处于轻度疲劳，注意力与效率略有下滑。通过午休、远眺、减少熬夜可快速恢复。"
+  } else if(total <= 38){
+    level = "中度脑疲劳";
+    cls = "level-moderate";
+    sug = "疲劳已显著影响认知与情绪，建议强制休息、规律睡眠、减少高强度用脑，必要时调整工作节奏。"
+  } else {
+    level = "重度脑疲劳";
+    cls = "level-severe";
+    sug = "大脑处于高负荷耗竭状态，长期可能损害神经健康。建议立即充分休息、改善睡眠，如持续不适建议咨询专业医师。"
+  }
+
+  document.getElementById('tLevel').textContent = level;
+  document.getElementById('tLevel').className = cls;
+  document.getElementById('suggest').textContent = sug;
+  drawChart(s1,s2,s3,s4,s5);
+}
+
+function drawChart(s1,s2,s3,s4,s5){
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:'radar',
+    data:{
+      labels:['注意力','记忆力','睡眠','情绪','躯体'],
+      datasets:[{
+        label:'疲劳得分（越低越好）',
+        data:[s1,s2,s3,s4,s5],
+        backgroundColor:'rgba(0,90,180,0.2)',
+        borderColor:'#005bb6',
+        borderWidth:2
+      }]
+    },
+    options:{scales:{r:{min:0,max:6,beginAtZero:true}}}
+  });
+}
+
+document.getElementById('exportPdf').addEventListener('click', async function(){
+  const reportEl = document.getElementById('report');
+  const canvas = await html2canvas(reportEl, {scale:2,useCORS:true});
+  const imgData = canvas.toDataURL('image/jpeg',1.0);
+  const pdf = new jsPDF('p','mm','a4');
+  const imgWidth = 210;
+  const imgHeight = canvas.height * 210 / canvas.width;
+  pdf.addImage(imgData,'JPEG',0,0,imgWidth,imgHeight);
+  pdf.save('脑疲劳评估报告.pdf');
+});
+
+function resetTest(){
+  form.reset();
+  document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+  form.style.display = 'block';
+  report.style.display = 'none';
+}
+</script>
+</body>
+</html>
